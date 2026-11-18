@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.zju-secret-store/
+zju-lecture-output/
+lecture-transcribe-output/
+output/
+bin/
+*.log
+.DS_Store
