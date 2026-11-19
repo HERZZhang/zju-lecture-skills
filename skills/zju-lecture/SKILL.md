@@ -56,7 +56,11 @@ $cli = '<本 skill 目录>\scripts\zju_zy.py'
 & $py $cli ppt "<回放URL>" [--vision]
 
 # 完整总结（默认会抓 PPT；--no-ppt 省钱模式；--courseware 附课件校准术语）
-& $py $cli summarize "<回放URL>" [--no-ppt] [--courseware 课件.pptx] [--extra "额外要求"]
+# summarize 默认自动生成 PDF（知识总结.pdf，KaTeX 公式渲染）；--no-pdf 可关闭
+& $py $cli summarize "<回放URL>" [--no-ppt] [--no-pdf] [--courseware 课件.pptx] [--extra "额外要求"]
+
+# 把已有讲义 Markdown 渲染成 PDF（公式用本地 KaTeX，Edge 打印）
+& $py $cli pdf <知识总结.md> [--out 输出.pdf]
 
 # 课件提取纯文字（不打 AI，秒回）
 & $py $cli extract <文件> [--out 输出.md]
@@ -74,8 +78,8 @@ AI 参数（`fetch --vision` / `ppt --vision` / `summarize` 通用）：
 **① 总结一节课（最常用）**
 1. `status` → 确认 `cookie.valid=true`、`api_key.present=true`
 2. 若登录态失效 → `login`（让老师在弹窗里登录，最多等 5 分钟）
-3. `summarize "<URL>"` → 从返回 JSON 的 `summary_path` 读讲义
-4. 把 `知识总结.md` 发回给老师（QQ 通道用 `[SEND_FILE: <绝对路径>]`）
+3. `summarize "<URL>"` → 从返回 JSON 的 `summary_path` / `pdf_path` 取讲义
+4. 把 `知识总结.pdf` 发回给老师（QQ 通道用 `[SEND_FILE: <绝对路径>]`），Markdown 留档
 
 **② 只要字幕存档**：`fetch "<URL>"` → 读 `transcript_path`
 
@@ -88,6 +92,7 @@ AI 参数（`fetch --vision` / `ppt --vision` / `summarize` 通用）：
 ```
 <out>/<YYYYMMDD>_sub<sub_id>/
   知识总结.md               # summarize 产物：速览表 / 分章详解 / 公式清单 / 考试信息 / 考点预测
+  知识总结.pdf              # 自动转的 PDF（A4、KaTeX 公式、中文排版）；--no-pdf 时不生成
   raw/transcript.txt        # 逐段字幕，带 [时:分:秒]
   raw/transcript_by_minute.txt
   ppt/001_t125s.jpg …       # PPT 页图，文件名带投出秒数

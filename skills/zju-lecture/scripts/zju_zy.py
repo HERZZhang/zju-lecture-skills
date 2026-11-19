@@ -30,6 +30,7 @@ if HERE not in sys.path:
 import pipeline          # noqa: E402
 import secure_store      # noqa: E402
 import zju_login         # noqa: E402
+import pdf_render        # noqa: E402
 
 DEFAULT_OUT_NAME = "zju-lecture-output"
 
@@ -287,7 +288,14 @@ def cmd_summarize(args):
         extra_requirements=args.extra,
         provider=provider_from_args(args),
         fetch_ppt=not args.no_ppt)
-    emit({"ok": True, **res})
+    out = {"ok": True, **res}
+    if not args.no_pdf:
+        try:
+            out["pdf_path"] = pdf_render.render_pdf(
+                res["summary_path"], progress=log)
+        except Exception as e:      # noqa: BLE001  渲染失败不影响 Markdown 产出
+            log(f"PDF 生成失败（讲义 Markdown 已保存）：{e}")
+    emit(out)
 
 
 def cmd_extract(args):
@@ -298,6 +306,11 @@ def cmd_extract(args):
         emit({"ok": True, "chars": len(text), "output": os.path.abspath(args.out)})
     else:
         emit({"ok": True, "chars": len(text), "text": text})
+
+
+def cmd_pdf(args):
+    pdf_path = pdf_render.render_pdf(args.md, pdf_path=args.out, progress=log)
+    emit({"ok": True, "pdf_path": pdf_path})
 
 
 def cmd_providers(args):
@@ -356,6 +369,7 @@ def build_parser():
     s.add_argument("url", help="智云课堂回放 URL")
     s.add_argument("--out", help="输出根目录（默认 ./zju-lecture-output）")
     s.add_argument("--no-ppt", action="store_true", help="跳过 PPT 抓取（省钱模式）")
+    s.add_argument("--no-pdf", action="store_true", help="不自动生成 PDF")
     s.add_argument("--courseware", help="附带课件文件（pptx/docx/pdf/txt/md）")
     s.add_argument("--extra", help="附加给总结模型的额外要求")
     add_ai_args(s)
@@ -365,6 +379,11 @@ def build_parser():
     s.add_argument("file", help="pptx / docx / pdf / txt / md")
     s.add_argument("--out", help="写入文件而不是打印到 stdout")
     s.set_defaults(func=cmd_extract)
+
+    s = sub.add_parser("pdf", help="把已有讲义 Markdown 渲染成 PDF")
+    s.add_argument("md", help="知识总结.md 路径")
+    s.add_argument("--out", help="输出 PDF 路径（默认同目录同名 .pdf）")
+    s.set_defaults(func=cmd_pdf)
 
     s = sub.add_parser("providers", help="列出内置 API 提供商预设")
     s.set_defaults(func=cmd_providers)
