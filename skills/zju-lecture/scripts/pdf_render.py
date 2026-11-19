@@ -40,6 +40,26 @@ def _file_url(path):
     return "file:///" + p
 
 
+# Markdown 会把 \( \) \[ \] 当成转义字符吃掉反斜杠，导致 KaTeX 定界符失效。
+# 渲染前先用占位符保护，渲染后再还原。
+_LATEX_GUARDS = [
+    ("\\(", "ZJLPAREN"), (("\\)"), "ZJRPAREN"),
+    ("\\[", "ZJLBRACKET"), ("\\]", "ZJBRACKET"),
+]
+
+
+def _protect_latex(text):
+    for src, tok in _LATEX_GUARDS:
+        text = text.replace(src, tok)
+    return text
+
+
+def _restore_latex(html):
+    for src, tok in _LATEX_GUARDS:
+        html = html.replace(tok, src)
+    return html
+
+
 def render_pdf(md_path, pdf_path=None, progress=None):
     """把 Markdown 讲义渲染成 PDF，返回 PDF 路径。失败抛异常（由调用方决定是否忽略）。"""
     def log(msg):
@@ -54,7 +74,8 @@ def render_pdf(md_path, pdf_path=None, progress=None):
 
     import markdown as mdlib
     html_body = mdlib.markdown(
-        text, extensions=["tables", "fenced_code", "sane_lists"])
+        _protect_latex(text), extensions=["tables", "fenced_code", "sane_lists"])
+    html_body = _restore_latex(html_body)
 
     katex_css = _file_url(os.path.join(KATEX_DIR, "katex.min.css"))
     katex_js = _file_url(os.path.join(KATEX_DIR, "katex.min.js"))
